@@ -28,9 +28,10 @@ import VueSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
 import _ from 'lodash';
 import { isArray } from 'util';
+import get from 'lodash/get';
 
 export default {
-	
+
 	components: {
 		VueSelect,
 	},
@@ -61,7 +62,7 @@ export default {
 
 			// If component is inside a flexible, key is prefixed with an id
 			if( currentField.indexOf('__') ) {
-				targetField = currentField.substr(0, currentField.indexOf('__')) + '__' + targetField; 
+				targetField = currentField.substr(0, currentField.indexOf('__')) + '__' + targetField;
 			}
 
 			//  Find the component the parent value references
@@ -72,7 +73,13 @@ export default {
 		},
 
 		availableOptions () {
-			return _.uniq(this.options.concat(this.selectedOptions), 'value');
+            let options = [];
+
+            if (Array.isArray(this.options) && this.options.length > 0) {
+                options = this.options;
+            }
+
+			return _.uniq(options.concat(this.selectedOptions));
 		},
 	},
 
@@ -120,9 +127,29 @@ export default {
 			this.value = value
 		},
 
+        /**
+         * Converts array of entries to objects with value / label props
+         */
+        convertApiResponse(options) {
+            if (this.field.resultsKey) {
+                options = options[this.field.resultsKey];
+            }
+
+            if (!Array.isArray(options) || options.length < 1) {
+                return [];
+            }
+
+            return options.map( entry => {
+                return {
+                    value: get(entry, this.field.valueKey, 'value'),
+                    label: get(entry, this.field.labelKey, 'label'),
+                }
+            });
+        },
+
 		/*
 		* Load initial Options
-		*/ 
+		*/
 		loadInitialOptions (value) {
 			let url = this.buildParamString(null, value);
 
@@ -132,10 +159,10 @@ export default {
 			}
 
 			window.Nova.request().get( url ).then(({data}) => {
-				this.options = data;
+				this.options = this.convertApiResponse(data);
 
 				this.options.forEach(option => {
-					if (isArray(this.value)) {
+					if (Array.isArray(this.value)) {
 						this.value.forEach(v => {
 							if (v == option.value) {
 								this.selectedOptions.push(option);
@@ -144,7 +171,7 @@ export default {
 						return;
 					}
 					if (this.value == option.value) {
-						this.selectedOptions.push(option);
+ 						this.selectedOptions.push(option);
 					}
 				})
 			});
@@ -152,16 +179,17 @@ export default {
 
 		/*
 		* Dynamic search with the input value
-		*/ 
+		*/
 		search: window._.debounce((loading, searchVal, vm) => {
 			let url = vm.buildParamString(searchVal)
 			window.Nova.request().get( url ).then(({data}) => {
+                data = vm.convertApiResponse(data);
 				vm.options = data;
 				loading(false);
 			});
 		}, 350),
 
-		
+
 		/*
 		* When multiselect input changes, determine if ready to query
 		*/
@@ -175,8 +203,7 @@ export default {
 		},
 
 		reduceOption(option) {
-			const valueKey = this.field.valueKey || 'value';
-			return option ? option[valueKey] : null;
+			return option ? option['value'] : null;
 		},
 
 		buildParamString(searchVal, fieldVal) {
@@ -229,20 +256,31 @@ export default {
 		},
 
 		inputSelected(value) {
-			if (!value) {
+			if (!value || !Array.isArray(this.options)) {
 				return;
 			}
+
 			if (Array.isArray(value)) {
 				value.forEach(v => {
 					if (!v) {
 						return;
 					}
 					const selectedOption = this.options.find(option => option.value === v);
+
+                    if (!selectedOption) {
+                        return;
+                    }
+
 					this.selectedOptions.push(selectedOption);
 				});
 			} else {
 				const selectedOption = this.options.find(option => option.value === value);
-				this.selectedOptions.push(selectedOption);
+
+                if (!selectedOption) {
+                    return;
+                }
+
+                this.selectedOptions.push(selectedOption);
 			}
 		}
 	},

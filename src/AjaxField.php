@@ -53,6 +53,16 @@ class AjaxField extends Field
 	}
 
 	/**
+     * Sets the key of the results that should be displayed, default is root.
+     */
+    public function setResultsKey(string $key): self
+    {
+        return $this->withMeta([
+            'resultsKey' => $key,
+        ]);
+    }
+
+	/**
 	 * Sets the type of the value being save to an integer.
 	 */
 	public function typeInt(): self

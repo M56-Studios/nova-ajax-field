@@ -40,6 +40,18 @@ If you wish you can override the default keys of "value" and "label" using the f
 	AjaxField::make('Foo')->setUrl('/api/ajaxselect/foo')->setValueKey('id')->setLabelKey('name'),
 ```
 
+If the properties are more nested, you can use a path string like this:
+```php
+	AjaxField::make('Foo')->setUrl('/api/ajaxselect/foo')->setValueKey('someObject.id')->setLabelKey('someObject.name'),
+```
+
+If your array is not at the root of the response, you can set the location like this:
+```php
+	AjaxField::make('Foo')->setUrl('/api/ajaxselect/foo')->setResultsKey('someObject.anotherObject.resultsArray'),
+```
+
+`setValueKey`, `setLabelKey` and `setResultsKey` values are all parsed by [Lodash's Get](https://docs-lodash.com/v4/get/).
+
 You can pass through another Nova fields value by adding the parent method with the key of the nova field 
 ```php
 	// Create a parent field 
